@@ -1,0 +1,75 @@
+digraph ERD {
+  graph [rankdir=LR, fontname="Helvetica", bgcolor="white", pad=0.4, nodesep=0.6, ranksep=1.1];
+  node  [shape=plain, fontname="Helvetica", fontsize=11];
+  edge  [fontname="Helvetica", fontsize=10, color="#555555", arrowhead=crow, arrowtail=tee, dir=both];
+
+  User [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#1e3a8a" colspan="2"><font color="white"><b>auths.User</b></font></td></tr>
+      <tr><td align="left"><b>id</b></td><td align="left">BigAutoField PK</td></tr>
+      <tr><td align="left">email</td><td align="left">EmailField unique</td></tr>
+      <tr><td align="left">password</td><td align="left">CharField (hash)</td></tr>
+      <tr><td align="left">first_name</td><td align="left">CharField(50)</td></tr>
+      <tr><td align="left">last_name</td><td align="left">CharField(50)</td></tr>
+      <tr><td align="left">is_active</td><td align="left">Boolean = True</td></tr>
+      <tr><td align="left">is_staff</td><td align="left">Boolean = False</td></tr>
+      <tr><td align="left">is_superuser</td><td align="left">Boolean</td></tr>
+      <tr><td align="left">last_login</td><td align="left">DateTime null</td></tr>
+      <tr><td align="left">date_joined</td><td align="left">DateTime</td></tr>
+    </table>>];
+
+  Category [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#0f766e" colspan="2"><font color="white"><b>blog.Category</b></font></td></tr>
+      <tr><td align="left"><b>id</b></td><td align="left">BigAutoField PK</td></tr>
+      <tr><td align="left">name</td><td align="left">CharField(100) unique</td></tr>
+      <tr><td align="left">slug</td><td align="left">SlugField unique</td></tr>
+    </table>>];
+
+  Tag [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#0f766e" colspan="2"><font color="white"><b>blog.Tag</b></font></td></tr>
+      <tr><td align="left"><b>id</b></td><td align="left">BigAutoField PK</td></tr>
+      <tr><td align="left">name</td><td align="left">CharField(50) unique</td></tr>
+      <tr><td align="left">slug</td><td align="left">SlugField unique</td></tr>
+    </table>>];
+
+  Post [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#0f766e" colspan="2"><font color="white"><b>blog.Post</b></font></td></tr>
+      <tr><td align="left"><b>id</b></td><td align="left">BigAutoField PK</td></tr>
+      <tr><td align="left">author_id</td><td align="left">FK → User (CASCADE)</td></tr>
+      <tr><td align="left">title</td><td align="left">CharField(200)</td></tr>
+      <tr><td align="left">slug</td><td align="left">SlugField unique</td></tr>
+      <tr><td align="left">body</td><td align="left">TextField</td></tr>
+      <tr><td align="left">category_id</td><td align="left">FK → Category (SET_NULL) null</td></tr>
+      <tr><td align="left">status</td><td align="left">draft | published</td></tr>
+      <tr><td align="left">created_at</td><td align="left">DateTime auto_now_add</td></tr>
+      <tr><td align="left">updated_at</td><td align="left">DateTime auto_now</td></tr>
+    </table>>];
+
+  PostTags [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#64748b" colspan="2"><font color="white"><b>blog.Post_tags</b> (M2M)</font></td></tr>
+      <tr><td align="left"><b>id</b></td><td align="left">PK</td></tr>
+      <tr><td align="left">post_id</td><td align="left">FK → Post</td></tr>
+      <tr><td align="left">tag_id</td><td align="left">FK → Tag</td></tr>
+    </table>>];
+
+  Comment [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5">
+      <tr><td bgcolor="#0f766e" colspan="2"><font color="white"><b>blog.Comment</b></font></td></tr>
+      <tr><td align="left"><b>id</b></td><td align="left">BigAutoField PK</td></tr>
+      <tr><td align="left">post_id</td><td align="left">FK → Post (CASCADE)</td></tr>
+      <tr><td align="left">author_id</td><td align="left">FK → User (CASCADE)</td></tr>
+      <tr><td align="left">body</td><td align="left">TextField</td></tr>
+      <tr><td align="left">created_at</td><td align="left">DateTime auto_now_add</td></tr>
+    </table>>];
+
+  User     -> Post     [label="1 : N  posts"];
+  Category -> Post     [label="1 : N  posts"];
+  Post     -> PostTags [label="1 : N"];
+  Tag      -> PostTags [label="1 : N"];
+  Post     -> Comment  [label="1 : N  comments"];
+  User     -> Comment  [label="1 : N  comments"];
+}

@@ -23,6 +23,14 @@ AUTH_USER_MODEL = "auths.User"
 # ----------------------------------------------
 # Apps
 #
+
+#Unfold must be above django.contrib.admin, otherwise its style are not used.
+UNFOLD_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+]
+
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -39,7 +47,7 @@ PROJECT_APPS = [
     "apps.auths",
     "apps.blog",
 ]
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
+INSTALLED_APPS = UNFOLD_APPS + DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 # ----------------------------------------------
 # Middleware | Templates | Validators

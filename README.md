@@ -78,3 +78,6 @@ Use the token in the header: `Authorization: Bearer <access>`.
 ```bash
 ruff check .
 ```
+## Seeding
+'python manage.py seed --users 20 --posts 100 --comments 500'
+Use '--clear' to delete old data first. Password for all seed users: 'seedpass123'

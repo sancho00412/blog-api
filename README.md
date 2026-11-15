@@ -90,7 +90,7 @@ The admin uses Django Unfold: http://127.0.0.1:8000/admin/
 
 | Dashboard | Post list with filters |
 |---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Post list](docs/screenshots/post_list.png) |
+![Dashboard](docs/screenshots/dashboard.png) | ![Post list](docs/screenshots/post_list.png) |
 
 | Post edit page | User list |
 |---|---|

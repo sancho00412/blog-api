@@ -174,6 +174,27 @@ def published_posts_overview() -> list[dict[str, Any]]:
         )
     )
 
+#---------------------Level-6------------------------------------
+def posts_stats() -> dict[str, Any]:
+    """Counts and first/last dates of posts in one query."""
+    return Post.objects.aggregate(
+        total=Count("pk"),
+        published=Count("pk", filter=Q(status=PUBLISHED)),
+        drafts=Count("pk", filter=Q(status=DRAFT)),
+        first_post_at=Min("created_at"),
+        last_post_at=Max("created_at"),
+
+    )
+
+def average_comments_per_post() -> float:
+    """Average number of comments on a published post."""
+    result: dict[str, float] = (
+        Post.objects.filter(status=PUBLISHED)
+        .annotate(comment_count=Count("comments"))
+        .aggregate(average=Avg("comment_count",default=0.0))
+    )
+    return round(result["average"], AVERAGE_DIGITS)
+
 QUERIES: dict[int, Callable[..., Any]] ={
     1: categories_by_name,
     2: published_posts,
@@ -202,6 +223,8 @@ QUERIES: dict[int, Callable[..., Any]] ={
     25: comments_by_post_author,
     26: comments_before_post,
     27: published_authors_emails,
-    28: published_posts_overview
+    28: published_posts_overview,
+    29: posts_stats,
+    30: average_comments_per_post,
 }
 

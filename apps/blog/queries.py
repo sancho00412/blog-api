@@ -154,6 +154,26 @@ def comments_before_post() -> QuerySet[Comment]:
     """Comments created before their post. Must be empty."""
     return Comment.objects.filter(created_at__lt=F("post__created_at"))
 
+#---------------------Level-5------------------------------------
+def published_authors_emails() -> list[str]:
+    """Unique emails of authors with published posts, A -> Z."""
+    return list(
+        User.objects.filter(posts__status=PUBLISHED)
+        .values_list("email", flat=True)
+        .distinct()
+        .order_by("email")
+    )
+
+def published_posts_overview() -> list[dict[str, Any]]:
+    """Title, author email and category name of published posts."""
+    return list(
+        Post.objects.filter(status=PUBLISHED).values(
+            "title",
+            author_email=F("author__email"),
+            category_name=Coalesce("category__name", Value(UNCATEGORIZED)),
+        )
+    )
+
 QUERIES: dict[int, Callable[..., Any]] ={
     1: categories_by_name,
     2: published_posts,
@@ -180,6 +200,8 @@ QUERIES: dict[int, Callable[..., Any]] ={
     23: published_posts_missing_info,
     24: edited_posts,
     25: comments_by_post_author,
-    26: comments_before_post
+    26: comments_before_post,
+    27: published_authors_emails,
+    28: published_posts_overview
 }
 

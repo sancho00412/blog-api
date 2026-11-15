@@ -42,7 +42,7 @@ def sample_arguments() -> dict[int, dict[str, Any]]:
         40: {"name": "Django ORM"},
         41: {"days": DAYS_BACK},
         42: {"category_slug": "python", "tag_slug": "docker"},
-        43: {"soure_slug": "career", "target_slug": "pyhon"}
+        43: {"source_slug": "career", "target_slug": "python"}
     }  
 
 class Command(BaseCommand):

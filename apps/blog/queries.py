@@ -226,9 +226,67 @@ def users_activity() -> QuerySet[User]:
         comment_count=Count("comments", distinct=True)
     )
 
+#---------------------Level-8------------------------------------
+def search_users_by_full_name(text: str) -> QuerySet[User]:
+    """Users whose 'Firts Last' contains the text"""
+    return User.objects.annotate(
+        full_name=Concat("first_name", Value(" "), "last_name")
+    ).filter(full_name__icontains=text)
 
+def published_posts_per_month() -> list[dict[str, Any]]:
+    """Number of published posts in each month, olders first."""
+    return list(
+        Post.objects.filter(status=PUBLISHED)
+        .annotate(month=TruncMonth("created_at"))
+        .values("month")
+        .annotate(count=Count("pk"))
+        .order_by("month")
+    )
 
-QUERIES: dict[int, Callable[..., Any]] ={
+def posts_with_popularity() -> QuerySet[Post]:
+    """Posts with comment_count and popularity hot / normal / quiet."""
+    return Post.objects.annotate(
+        comment_count=Count("comments"),
+        popularity=Case(
+            When(comment_count__gte=HOT_COMMENTS, then=Value("hot")),
+            When(comment_count__gte=NORMAL_COMMENTS, then=Value("normal")),
+            default=Value("quiet")
+        ),
+    )
+
+#---------------------Level-9------------------------------------
+def get_or_create_tag(name: str) -> tuple[Tag, bool]:
+    """Return the tag whith this name, create it if needed."""
+    return Tag.objects.get_or_create(slug=slugify(name), defaults={"name": name})
+
+def publish_old_drafts(days: int) -> int:
+    """Publish drafts older than N days with one query."""
+    now = timezone.now()
+    return Post.objects.filter(status=DRAFT, created_at__lt=now - timedelta(days=days)).update(
+        status=PUBLISHED, updated_at=now
+    )
+
+def tag_category_posts(category_slug: str, tag_slug: str) -> int:
+    """Add the tag to every post of the category."""
+    tag: Tag = Tag.objects.get(slug=tag_slug)
+    posts: list[Post] = list(Post.objects.filter(category__slug=category_slug))
+    tag.posts.add(*posts)
+    return len(posts)
+
+def merge_categories(source_slug: str, target_slug: str) -> int:
+    """Move posts to the target category, then delete the source."""
+    target: Category = Category.objects.get(slug=target_slug)
+    with transaction.atomic():
+        moved: int = Post.objects.filter(category__slug=source_slug).update(category=target)
+        Category.objects.filter(slug=source_slug).delete()
+    return moved
+
+def delete_inactive_users_comments() -> int:
+    """Delete comments of inactive users."""
+    delete, _ =Comment.objects.filter(author__is_active=False).delete()
+    return delete
+
+QUERIES: dict[int, Callable[..., Any]] = {
     1: categories_by_name,
     2: published_posts,
     3: newest_published_posts,
@@ -265,5 +323,12 @@ QUERIES: dict[int, Callable[..., Any]] ={
     34: popular_tags,
     35: posts_per_status,
     36: users_activity,
-
+    37: search_users_by_full_name,
+    38: published_posts_per_month,
+    39: posts_with_popularity,
+    40: get_or_create_tag,
+    41: publish_old_drafts,
+    42: tag_category_posts,
+    43: merge_categories,
+    44: delete_inactive_users_comments
 }

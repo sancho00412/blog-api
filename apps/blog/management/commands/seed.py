@@ -10,6 +10,7 @@ Usage:
 import random
 import re
 import time
+from datetime import timedelta
 from typing import Any
 
 #Third party modules
@@ -94,6 +95,10 @@ MIN_PARAGRAPHS: int = 3
 MAX_PARAGRAPHS: int = 6
 PARAGRAPHS_SEPARRATOR: str = "\n\n"
 TITLE_END_CHAR: str = "."
+POSTS_DATE_RANGE_DAYS: int = 365
+EDITED_POSTS_RATIO: float = 0.3
+MIN_EDIT_DAYS: int = 1
+MAX_EDIT_DAYS: int = 30
 
 #-------------------------------------------------------------------------------------------
 #Comments
@@ -161,7 +166,9 @@ class Command(BaseCommand):
             tags: list[Tag] = self._create_tags()
             posts: list[Post] = self._create_posts(posts_count)
             self._attach_tags(posts)
-            comments: list[Comment] = self._create_comments(comments_count)
+            self._set_post_dates(posts)
+            comments: list[Comment] = self._create_comments(comments_count, posts)
+            self._set_comment_dates(comments)
 
         elapsed: float = time.perf_counter() - start_time
 
@@ -338,28 +345,43 @@ class Command(BaseCommand):
             # After bulk_create the posts have ids, so .set() words.
             post.tags.set(random.sample(tags, k=random.randint(MIN_TAGS_PER_POST,max_tags)))
 
-    def _create_comments(self, count: int) -> list[Comment]:
+    def _create_comments(self, count: int, posts: list[Post]) -> list[Comment]:
         if count == 0:
             return []
         author_ids: list[int] = list(User.objects.values_list("pk", flat=True))
         if not author_ids:
             raise CommandError("No users. Use --users.")
-        post_ids: list[int] = list(
-            Post.objects.filter(status=Post.Status.PUBLISHED).values_list("pk", flat=True)
-        )
-        if not post_ids:
-            raise CommandError("No published posts. Use --posts.")
+        published: list[Post] = [p for p in posts if p.status == Post.Status.PUBLISHED]
+        if not published:
+            raise CommandError("No published posts. Use --posts")
         comments: list[Comment] = [
             Comment(
-                post_id=random.choice(post_ids),
+                post=random.choice(published),
                 author_id=random.choice(author_ids),
                 body=" ".join(
-                    self.fake.sentences(random.randint(MIN_COMMENT_SENTENCES,MAX_COMMENT_SENTENCES))
+                    self.fake.sentences(random.randint(MIN_COMMENT_SENTENCES, MAX_COMMENT_SENTENCES))
                 ),
             )
             for _ in range(count)
         ]
         return Comment.objects.bulk_create(comments, batch_size=BULK_BATCH_SIZE)
+
+    def _set_post_dates(self, posts: list[Post]) -> None:
+        now = timezone.now()
+        for post in posts:
+            post.created_at = now - timedelta(days=random.random() * POSTS_DATE_RANGE_DAYS)
+            post.updated_at = post.created_at
+            if random.random() < EDITED_POSTS_RATIO:
+                edited = post.created_at + timedelta(days=random.randint(MIN_EDIT_DAYS, MAX_EDIT_DAYS))
+                post.updated_at = min(edited, now)
+        Post.objects.bulk_update(posts, ["created_at", "updated_at"], batch_size=BULK_BATCH_SIZE)
+
+    def _set_comment_dates(self, comments: list[Comment]) -> None:
+        now = timezone.now()
+        for comment in comments:
+            start = comment.post.created_at
+            comment.created_at = start + (now - start) * random.random()
+        Comment.objects.bulk_update(comments, ["created_at"], batch_size=BULK_BATCH_SIZE)
 
     def _print_summary(self, elapsed: float, **counts: int) -> None:
             for label, number in counts.items():

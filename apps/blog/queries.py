@@ -40,6 +40,7 @@ NORMAL_COMMENTS: int = 3
 AVERAGE_DIGITS: int = 2
 FEED_LIMIT: int = 50
 NEWEST_WITH_TAGS_LIMIT: int = 20
+EDIT_THRESHOLD: timedelta = timedelta(hours=1)
 
 def categories_by_name() -> QuerySet[Category]:
     """All Categories, A -> Z."""
@@ -128,6 +129,30 @@ def posts_with_both_tags(first_slug: str, second_slug: str) -> QuerySet[Post]:
     """Posts that have both tags."""
     return Post.objects.filter(tags__slug=first_slug).filter(tags__slug=second_slug)
 
+#---------------------Level-4------------------------------------
+def search_posts(text: str) -> QuerySet[Post]:
+    """Posts with the text in the title or in the body."""
+    return Post.objects.filter(Q(title__icontains=text) | Q(body__icontains=text))
+
+def published_posts_missing_info() -> QuerySet[Post]:
+    """Published posts with no category or no tags."""
+    return(
+        Post.objects.filter(status=PUBLISHED)
+        .filter(Q(category__isnull=True) | Q(tags__isnull=True))
+        .distinct()
+    )
+
+def edited_posts() -> QuerySet[Post]:
+    """Posts edited more than 1 hours after creation."""
+    return Post.objects.filter(updated_at__gt=F("created_at") + EDIT_THRESHOLD)
+
+def comments_by_post_author() -> QuerySet[Comment]:
+    """Comments written by the author of the post"""
+    return Comment.objects.filter(author=F("post__author"))
+
+def comments_before_post() -> QuerySet[Comment]:
+    """Comments created before their post. Must be empty."""
+    return Comment.objects.filter(created_at__lt=F("post__created_at"))
 
 QUERIES: dict[int, Callable[..., Any]] ={
     1: categories_by_name,
@@ -151,4 +176,10 @@ QUERIES: dict[int, Callable[..., Any]] ={
     19: posts_without_tags,
     20: users_without_comments,
     21: posts_with_both_tags,
+    22: search_posts,
+    23: published_posts_missing_info,
+    24: edited_posts,
+    25: comments_by_post_author,
+    26: comments_before_post
 }
+

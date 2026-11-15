@@ -70,6 +70,35 @@ def published_posts_page(page: int) -> QuerySet[Post]:
     start: int = (page - 1) * PAGE_SIZE
     return published_posts()[start : start + PAGE_SIZE]
 
+#-------------------Level 2---------------------
+def posts_with_word_in_title(word: str) -> QuerySet[Post]:
+    """Posts whose title contains the word, any case."""
+    return Post.objects.filter(title__icontains=word)
+
+def users_with_email_domain(domain: str) -> QuerySet[User]:
+    """Users whose email ends with @domain."""
+    return User.objects.filter(email__iendswith=f"@{domain}")
+
+def posts_without_category() -> QuerySet[Post]:
+    """Posts with no category."""
+    return Post.objects.filter(category__isnull=True)
+
+def categories_by_slugs(slugs: list[str]) -> QuerySet[Category]:
+    """Categories whose slug is in the list."""
+    return Category.objects.filter(slug_in=slugs)
+
+def posts_in_months(year: int, month: int) -> QuerySet[Post]:
+    """Posts created in this month"""
+    return Post.objects.filter(created_at__year=year, created_at__month= month)
+
+def posts_last_days(days: int) -> QuerySet[Post]:
+    """Posts created in the last N days"""
+    return Post.objects.filter(created_at_gte=timezone.now() - timedelta(days=days))
+
+def posts_between(start: date, end: date) -> QuerySet[Post]:
+    """Posts created from start tp end, both days included."""
+    return Post.objects.filter(created_at__date__range=(start, end))
+
 QUERIES: dict[int, Callable[..., Any]] ={
     1: categories_by_name,
     2: published_posts,
@@ -77,5 +106,12 @@ QUERIES: dict[int, Callable[..., Any]] ={
     4: post_by_slug,
     5: active_users_count,
     6: has_drafts,
-    7: published_posts_page
+    7: published_posts_page,
+    8: posts_with_word_in_title,
+    9: users_with_email_domain,
+    10: posts_without_category,
+    11: categories_by_slugs,
+    12: posts_in_months,
+    13: posts_last_days,
+    14: posts_between
 }

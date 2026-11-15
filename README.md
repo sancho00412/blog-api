@@ -81,3 +81,17 @@ ruff check .
 ## Seeding
 'python manage.py seed --users 20 --posts 100 --comments 500'
 Use '--clear' to delete old data first. Password for all seed users: 'seedpass123'
+
+## Admin
+
+The admin uses Django Unfold: http://127.0.0.1:8000/admin/
+
+> Note: Part 2 (Admin) was submitted after the HW2 deadline. Part 1 (Seed) was on time.
+
+| Dashboard | Post list with filters |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Post list](docs/screenshots/post_list.png) |
+
+| Post edit page | User list |
+|---|---|
+| ![Post edit](docs/screenshots/post_edit.png) | ![User list](docs/screenshots/user_list.png) |

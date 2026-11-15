@@ -5,6 +5,9 @@ from datetime import timedelta
 from pathlib import Path
 
 # Project modules
+from django.urls import reverse_lazy
+
+from apps.blog.links import drafts_link, published_link
 from settings.conf import *  # noqa: F403
 
 # ----------------------------------------------
@@ -64,7 +67,7 @@ MIDDLEWARE = [
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -146,4 +149,86 @@ LOGGING = {
         "handlers": ["console", "file"],
         "level": "INFO",
     },
+}
+
+UNFOLD = {
+    "SITE_TITLE": "Blog Admin",
+    "SITE_HEADER": "Blog API",
+    "SITE_SUBHEADER": "Posts, comments and users",
+    "SITE_SYMBOL": "edit_note",
+    "ENVIRONMENT": "apps.blog.callbacks.environment_callback",
+    "DASHBOARD_CALLBACK": "apps.blog.callbacks.dashboard_callback",
+    "COLORS": {
+        "primary": {
+            "50": "oklch(98.4% 0.014 180.72)",
+            "100": "oklch(95.3% 0.051 180.801)",
+            "200": "oklch(91% 0.096 180.426)",
+            "300": "oklch(85.5% 0.138 181.071)",
+            "400": "oklch(77.7% 0.152 181.912)",
+            "500": "oklch(70.4% 0.14 182.503)",
+            "600": "oklch(60% 0.118 184.704)",
+            "700": "oklch(51.1% 0.096 186.391)",
+            "800": "oklch(43.7% 0.078 188.216)",
+            "900": "oklch(38.6% 0.063 188.416)",
+            "950": "oklch(27.7% 0.046 192.524)",
+        },
+    },
+    "SITE_DROPDOWN": [
+        {"icon": "code", "title": "GitHub", "link": "https://github.com/sancho00412/blog-api"},
+        {"icon": "menu_book", "title": "Unfold docs", "link": "https://unfoldadmin.com/docs/"},
+    ],
+    "COMMAND": {"search_models": True},
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Overview",
+                "items": [
+                    {"title": "Dashboard", "icon": "dashboard", "link": reverse_lazy("admin:index")},
+                ],
+            },
+            {
+                "title": "Content",
+                "items": [
+                    {
+                        "title": "Posts",
+                        "icon": "article",
+                        "link": reverse_lazy("admin:blog_post_changelist"),
+                        "badge": "apps.blog.callbacks.drafts_badge",
+                    },
+                    {"title": "Comments", "icon": "chat", "link": reverse_lazy("admin:blog_comment_changelist")},
+                    {"title": "Categories", "icon": "category", "link": reverse_lazy("admin:blog_category_changelist")},
+                    {"title": "Tags", "icon": "sell", "link": reverse_lazy("admin:blog_tag_changelist")},
+                ],
+            },
+            {
+                "title": "Users & Access",
+                "items": [
+                    {
+                        "title": "Users",
+                        "icon": "person",
+                        "link": reverse_lazy("admin:auths_user_changelist"),
+                        "permission": "apps.blog.callbacks.is_superuser",
+                    },
+                    {
+                        "title": "Groups",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "permission": "apps.blog.callbacks.is_superuser",
+                    },
+                ],
+            },
+        ],
+    },
+    "TABS": [
+        {
+            "models": ["blog.post"],
+            "items": [
+                {"title": "All", "link": reverse_lazy("admin:blog_post_changelist"), "active": "apps.blog.links.all_active"},
+                {"title": "Published", "link": published_link, "active": "apps.blog.links.published_active"},
+                {"title": "Drafts", "link": drafts_link, "active": "apps.blog.links.drafts_active"},
+            ],
+        },
+    ],
 }

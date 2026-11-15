@@ -91,7 +91,7 @@ class Command(BaseCommand):
         for row in result[:ROWS_TO_SHOW]:
             if isinstance(row, Model) and annotations:
                 values = {name: getattr(row, name) for name in annotations}
-                self.stdout.write(f"  {row}{values}")
+                self.stdout.write(f"  {row} {values}")
             else:
                 self.stdout.write(f"  {row}")
         self.stdout.write(f"  ({len(result)} rows)")

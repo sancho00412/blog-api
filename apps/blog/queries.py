@@ -195,6 +195,39 @@ def average_comments_per_post() -> float:
     )
     return round(result["average"], AVERAGE_DIGITS)
 
+#---------------------Level-7------------------------------------
+def categories_with_post_count() -> QuerySet[Category]:
+    """Categories with post_count, must posts first."""
+    return Category.objects.annotate(post_count=Count("posts")).order_by("-post_count", "name")
+
+def categories_with_published_count() -> QuerySet[Category]:
+    """Categories with published_count, including 0."""
+    return Category.objects.annotate(
+        published_count=Count("posts", filter=Q(posts__status=PUBLISHED))
+    )
+
+def top_authors() -> QuerySet[User]:
+    """Top 5 uers by published posts"""
+    return User.objects.annotate(
+        published_count=Count("posts", filter=Q(posts__status=PUBLISHED))
+    ).order_by("-published_count")[:TOP_AUTHORS_LIMIT]
+def popular_tags(min_posts: int) -> QuerySet[Tag]:
+    """Tags used in at least min_posts."""
+    return Tag.objects.annotate(post_count=Count("posts")).filter(post_count__gte=min_posts)
+
+def posts_per_status() ->list[dict[str, Any]]:
+    """Number of posts for each status."""
+    return list(Post.objects.values("status").annotate(count=Count("pk")).order_by("status"))
+
+def users_activity() -> QuerySet[User]:
+    """Users with correct post_count and comment_count"""
+    return User.objects.annotate(
+        post_count=Count("posts",distinct=True),
+        comment_count=Count("comments", distinct=True)
+    )
+
+
+
 QUERIES: dict[int, Callable[..., Any]] ={
     1: categories_by_name,
     2: published_posts,
@@ -226,5 +259,11 @@ QUERIES: dict[int, Callable[..., Any]] ={
     28: published_posts_overview,
     29: posts_stats,
     30: average_comments_per_post,
-}
+    31: categories_with_post_count,
+    32: categories_with_published_count,
+    33: top_authors,
+    34: popular_tags,
+    35: posts_per_status,
+    36: users_activity,
 
+}

@@ -85,19 +85,49 @@ def posts_without_category() -> QuerySet[Post]:
 
 def categories_by_slugs(slugs: list[str]) -> QuerySet[Category]:
     """Categories whose slug is in the list."""
-    return Category.objects.filter(slug_in=slugs)
+    return Category.objects.filter(slug__in=slugs)
 
 def posts_in_months(year: int, month: int) -> QuerySet[Post]:
     """Posts created in this month"""
-    return Post.objects.filter(created_at__year=year, created_at__month= month)
+    return Post.objects.filter(created_at__year=year, created_at__month=month)
 
 def posts_last_days(days: int) -> QuerySet[Post]:
     """Posts created in the last N days"""
-    return Post.objects.filter(created_at_gte=timezone.now() - timedelta(days=days))
+    return Post.objects.filter(created_at__gte=timezone.now() - timedelta(days=days))
 
 def posts_between(start: date, end: date) -> QuerySet[Post]:
     """Posts created from start tp end, both days included."""
     return Post.objects.filter(created_at__date__range=(start, end))
+
+#-------------------Level 2---------------------
+def author_published_posts(email:str) -> QuerySet[Post]:
+    """Published posts of the author with this email."""
+    return Post.objects.filter(author__email__iexact=email, status=PUBLISHED)
+
+def posts_with_tag(tag_slug: str) -> QuerySet[Post]:
+    """Posts that have this tag."""
+    return Post.objects.filter(tags__slug=tag_slug)
+
+def comments_in_category(category_slug: str) -> QuerySet[Comment]:
+    """Comments on posts of this category."""
+    return Comment.objects.filter(post__category__slug=category_slug)
+
+def users_with_published_posts() -> QuerySet[User]:
+    """Users with at least one published post, no repeats."""
+    return User.objects.filter(posts__status=PUBLISHED).distinct()
+
+def posts_without_tags() -> QuerySet[Post]:
+    """Posts with no tags."""
+    return Post.objects.filter(tags__isnull=True)
+
+def users_without_comments() -> QuerySet[User]:
+    """Users who never wrote a comment."""
+    return User.objects.filter(comments__isnull=True)
+
+def posts_with_both_tags(first_slug: str, second_slug: str) -> QuerySet[Post]:
+    """Posts that have both tags."""
+    return Post.objects.filter(tags__slug=first_slug).filter(tags__slug=second_slug)
+
 
 QUERIES: dict[int, Callable[..., Any]] ={
     1: categories_by_name,
@@ -113,5 +143,12 @@ QUERIES: dict[int, Callable[..., Any]] ={
     11: categories_by_slugs,
     12: posts_in_months,
     13: posts_last_days,
-    14: posts_between
+    14: posts_between,
+    15: author_published_posts,
+    16: posts_with_tag,
+    17: comments_in_category,
+    18: users_with_published_posts,
+    19: posts_without_tags,
+    20: users_without_comments,
+    21: posts_with_both_tags,
 }

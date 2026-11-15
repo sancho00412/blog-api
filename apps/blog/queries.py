@@ -88,7 +88,7 @@ def categories_by_slugs(slugs: list[str]) -> QuerySet[Category]:
     """Categories whose slug is in the list."""
     return Category.objects.filter(slug__in=slugs)
 
-def posts_in_months(year: int, month: int) -> QuerySet[Post]:
+def posts_in_month(year: int, month: int) -> QuerySet[Post]:
     """Posts created in this month"""
     return Post.objects.filter(created_at__year=year, created_at__month=month)
 
@@ -286,6 +286,43 @@ def delete_inactive_users_comments() -> int:
     delete, _ =Comment.objects.filter(author__is_active=False).delete()
     return delete
 
+#---------------------Level-10------------------------------------
+def published_feed() -> list[str]:
+    """50 newest published posts as 'title | email | category'."""
+    posts = published_posts().select_related("author", "category")[:FEED_LIMIT]
+    return[
+        f"{p.title} | {p.author.email} | {p.category.name if p.category else UNCATEGORIZED}"
+        for p in posts
+    ]
+
+def newest_posts_with_tags() -> list[str]:
+    """20 newest posts as 'title: tag1, tag2'."""
+    posts = Post.objects.prefetch_related("tags").order_by("-created_at")[:NEWEST_WITH_TAGS_LIMIT]
+    return[f"{p.title}: {', '.join(t.name for t in p.tags.all())}" for p in posts]
+
+def categorines_with_published_posts() -> dict[str, list[str]]:
+    """{category: [titles of its published posts, newest first]}."""
+    categories = Category.objects.prefetch_related(
+        Prefetch("posts", queryset=published_posts(), to_attr="published_posts")
+    )
+    return {c.name: [p.title for p in c.published_posts] for c in categories}
+
+#---------------------Level-11------------------------------------
+def posts_with_last_comment() -> QuerySet[Post]:
+    """Published posts with the body of their newest comment."""
+    newest = Comment.objects.filter(post=OuterRef("pk")).order_by("created_at").values("body")[:1]
+    return Post.objects.filter(status=PUBLISHED).annotate(last_comment=Subquery(newest))
+
+def posts_with_staff_comments() -> QuerySet[Post]:
+    """Post with at least one comment from a staff user."""
+    staff_comments = Comment.objects.filter(post=OuterRef("pk"), author__is_staff=True)
+    return Post.objects.filter(Exists(staff_comments))
+
+def users_with_draft_as_latest_post() -> QuerySet[User]:
+    """Users whose newest post is a draft."""
+    latest = Post.objects.filter(author=OuterRef("pk")).order_by("-created_at").values("status")[:1]
+    return User.objects.annotate(latest_post_status=Subquery(latest)).filter(latest_post_status=DRAFT)
+
 QUERIES: dict[int, Callable[..., Any]] = {
     1: categories_by_name,
     2: published_posts,
@@ -298,7 +335,7 @@ QUERIES: dict[int, Callable[..., Any]] = {
     9: users_with_email_domain,
     10: posts_without_category,
     11: categories_by_slugs,
-    12: posts_in_months,
+    12: posts_in_month,
     13: posts_last_days,
     14: posts_between,
     15: author_published_posts,
@@ -330,5 +367,11 @@ QUERIES: dict[int, Callable[..., Any]] = {
     41: publish_old_drafts,
     42: tag_category_posts,
     43: merge_categories,
-    44: delete_inactive_users_comments
+    44: delete_inactive_users_comments,
+    45: published_feed, 
+    46: newest_posts_with_tags,
+    47: categorines_with_published_posts,
+    48: posts_with_last_comment,
+    49: posts_with_staff_comments,
+    50: users_with_draft_as_latest_post,
 }

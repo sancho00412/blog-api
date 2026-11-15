@@ -31,8 +31,14 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     readonly_fields = ["last_login", "date_joined"]
 
     fieldsets = [
-        ("Personal info", {"classes": TAB, "fields": ["email", "password", "first_name", "last_name"]}),
-        ("Permissions", {"classes": TAB, "fields": ["is_active", "is_staff", "is_superuser", "groups"]}),
+        (
+            "Personal info",
+            {"classes": TAB, "fields": ["email", "password", "first_name", "last_name"]},
+        ),
+        (
+            "Permissions",
+            {"classes": TAB, "fields": ["is_active", "is_staff", "is_superuser", "groups"]},
+        ),
         ("Important dates", {"classes": TAB, "fields": ["last_login", "date_joined"]}),
     ]
     add_fieldsets = [

@@ -1,7 +1,7 @@
 """Run the ORM queries ans show the result and the number of SQL queries"""
 
 from datetime import timedelta
-from typing import Any 
+from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import connection
@@ -13,9 +13,10 @@ from apps.auths.models import User
 from apps.blog.models import Post
 from apps.blog.queries import QUERIES
 
-ROWS_TO_SHOW: int = 5 
-CHANGING_QUERIES: range = range (40, 45)
+ROWS_TO_SHOW: int = 5
+CHANGING_QUERIES: range = range(40, 45)
 DAYS_BACK: int = 30
+
 
 def sample_arguments() -> dict[int, dict[str, Any]]:
     """Sample arguments for queries that need them."""
@@ -42,11 +43,12 @@ def sample_arguments() -> dict[int, dict[str, Any]]:
         40: {"name": "Django ORM"},
         41: {"days": DAYS_BACK},
         42: {"category_slug": "python", "tag_slug": "docker"},
-        43: {"source_slug": "career", "target_slug": "python"}
-    }  
+        43: {"source_slug": "career", "target_slug": "python"},
+    }
+
 
 class Command(BaseCommand):
-    """Management command 'queries'.""" 
+    """Management command 'queries'."""
 
     help = "Run the ORM queries from apps/blog/queries.py"
 
@@ -65,6 +67,7 @@ class Command(BaseCommand):
         arguments: dict[int, dict[str, Any]] = sample_arguments()
         for n in numbers:
             self._run(n, arguments.get(n, {}), options["sql"])
+
     def _run(self, number: int, arguments: dict[str, Any], show_sql: bool) -> None:
         function = QUERIES[number]
         with CaptureQueriesContext(connection) as context:

@@ -22,6 +22,7 @@ def drafts_badge(request: HttpRequest) -> str:
 def is_superuser(request: HttpRequest) -> bool:
     return request.user.is_superuser
 
+
 TOP_AUTHORS_LIMIT: int = 5
 PERCENT: int = 100
 
@@ -33,8 +34,12 @@ def dashboard_callback(request: HttpRequest, context: dict[str, Any]) -> dict[st
         drafts=Count("pk", filter=Q(status=Post.Status.DRAFT)),
     )
     categories = Category.objects.annotate(posts_total=Count("posts")).order_by("name")
-    authors = User.objects.annotate(posts_total=Count("posts")).order_by("-posts_total")[:TOP_AUTHORS_LIMIT]
-    published_percent: int = round(counts["published"] * PERCENT / counts["total"]) if counts["total"] else 0
+    authors = User.objects.annotate(posts_total=Count("posts")).order_by("-posts_total")[
+        :TOP_AUTHORS_LIMIT
+    ]
+    published_percent: int = (
+        round(counts["published"] * PERCENT / counts["total"]) if counts["total"] else 0
+    )
 
     context.update(
         {

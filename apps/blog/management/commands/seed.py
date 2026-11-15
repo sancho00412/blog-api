@@ -6,47 +6,47 @@ Usage:
     python manage.py seed --clear
 """
 
-#Python modules
+# Python modules
 import random
 import re
 import time
 from datetime import timedelta
 from typing import Any
 
-#Third party modules
+# Third party modules
 from faker import Faker
 
-#Django modules
+# Django modules
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-#Project modules
+# Project modules
 from apps.auths.models import User
 from apps.blog.constants import FIRST_SLUG_SUFFIX, POST_SLUG_MAX_LENGTH, SLUG_SUFFIX_TEMPLATE
 from apps.blog.models import Category, Comment, Post, Tag
 
-#-------------------------------------------------------------------------------------------
-#Defaults for the command arguments
+# -------------------------------------------------------------------------------------------
+# Defaults for the command arguments
 #
 DEFAULT_USERS: int = 20
 DEFAULT_POSTS: int = 100
 DEFAULT_COMMENTS: int = 500
 
-#-------------------------------------------------------------------------------------------
-#Users
+# -------------------------------------------------------------------------------------------
+# Users
 #
 SEED_PASSWORD: str = "seedpass123"
 EMAIL_DOMAINS: tuple[str, ...] = ("example.com", "blog.kz", "mail.com")
 EMAIL_TAMPLATE: str = "{first}.{last}{number}@{domain}"
 INACTIVE_USERS_RATIO: float = 0.15
-STAFF_USERS_RATIO : float = 0.05
+STAFF_USERS_RATIO: float = 0.05
 DATE_JOINED_START: str = "-2y"
 
-#-------------------------------------------------------------------------------------------
-#categories and tags
+# -------------------------------------------------------------------------------------------
+# categories and tags
 #
 CATEGORY_NAMES: tuple[str, ...] = (
     "Python",
@@ -59,7 +59,7 @@ CATEGORY_NAMES: tuple[str, ...] = (
     "Career",
 )
 
-TAG_NAMES: tuple [str, ...] = (
+TAG_NAMES: tuple[str, ...] = (
     "python3",
     "django-orm",
     "rest-api",
@@ -82,8 +82,8 @@ TAG_NAMES: tuple [str, ...] = (
     "best-practices",
 )
 
-#-------------------------------------------------------------------------------------------
-#Posts
+# -------------------------------------------------------------------------------------------
+# Posts
 #
 PUBLISHED_POSTS_RATIO: float = 0.7
 POSTS_WITHOUT_CATEGORY_RATIO: float = 0.1
@@ -100,14 +100,14 @@ EDITED_POSTS_RATIO: float = 0.3
 MIN_EDIT_DAYS: int = 1
 MAX_EDIT_DAYS: int = 30
 
-#-------------------------------------------------------------------------------------------
-#Comments
+# -------------------------------------------------------------------------------------------
+# Comments
 #
 MIN_COMMENT_SENTENCES: int = 1
 MAX_COMMENT_SENTENCES: int = 3
 
-#-------------------------------------------------------------------------------------------
-#Other
+# -------------------------------------------------------------------------------------------
+# Other
 #
 BULK_BATCH_SIZE: int = 500
 SUMMARY_LABEL_WIDTH: int = 11
@@ -117,14 +117,16 @@ NOT_LETTERS_PATTERN: re.Pattern[str] = re.compile(r"[^a-z0-9]")
 
 class Command(BaseCommand):
     """Management command 'seed' ."""
+
     help = "Fill the database with fake data."
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fake: Faker = Faker()
 
-#-------------------------------------------------------------------------------------------
-#Arguments
-#
+    # -------------------------------------------------------------------------------------------
+    # Arguments
+    #
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--users", type=int, default=DEFAULT_USERS, help="Number of users to create"
@@ -134,7 +136,7 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--comments",
-            type=int, 
+            type=int,
             default=DEFAULT_COMMENTS,
             help="Number of comments to crate",
         )
@@ -142,9 +144,8 @@ class Command(BaseCommand):
             "--clear", action="store_true", help="delete existing data before seeding"
         )
 
-
-    #-------------------------------------------------------------------------------------------
-    #Entry point
+    # -------------------------------------------------------------------------------------------
+    # Entry point
     #
     def handle(self, *args: Any, **options: Any) -> None:
         users_count: int = options["users"]
@@ -152,11 +153,11 @@ class Command(BaseCommand):
         comments_count: int = options["comments"]
         clear: bool = options["clear"]
 
-        self._validate_numbers(users=users_count, posts= posts_count, comments=comments_count)
+        self._validate_numbers(users=users_count, posts=posts_count, comments=comments_count)
 
         start_time: float = time.perf_counter()
 
-        #One transaction: if something fails, nothing is saved.
+        # One transaction: if something fails, nothing is saved.
         with transaction.atomic():
             if clear:
                 self._clear_data()
@@ -181,14 +182,11 @@ class Command(BaseCommand):
             tags=len(tags),
             posts=len(posts),
             comments=len(comments),
-            elapsed=elapsed
+            elapsed=elapsed,
         )
 
-
-
-
-    #-------------------------------------------------------------------------------------------
-    #validation
+    # -------------------------------------------------------------------------------------------
+    # validation
     #
     def _validate_numbers(self, **numbers: int) -> None:
         """Raise CommandError if any number is negaive."""
@@ -196,8 +194,8 @@ class Command(BaseCommand):
             if value < 0:
                 raise CommandError(f"--{name} must be 0 or more, got {value}.")
 
-    #-------------------------------------------------------------------------------------------
-    #Clear
+    # -------------------------------------------------------------------------------------------
+    # Clear
     #
     def _clear_data(self) -> None:
         """delete al blog data and all users except superusers."""
@@ -207,15 +205,15 @@ class Command(BaseCommand):
         Category.objects.all().delete()
         User.objects.filter(is_superuser=False).delete()
 
-    #-------------------------------------------------------------------------------------------
-    #Users
+    # -------------------------------------------------------------------------------------------
+    # Users
     #
     def _create_users(self, count: int) -> list[User]:
         """Create users with unique emails and one shared hashes password."""
         if count == 0:
-            return[]
-        #Hashing is slow on purpose, so we do it only once.
-        hashed_password:str = make_password(SEED_PASSWORD)
+            return []
+        # Hashing is slow on purpose, so we do it only once.
+        hashed_password: str = make_password(SEED_PASSWORD)
         used_emails: set[str] = set(User.objects.values_list("email", flat=True))
 
         users: list[User] = []
@@ -241,24 +239,21 @@ class Command(BaseCommand):
             )
         return User.objects.bulk_create(users, batch_size=BULK_BATCH_SIZE)
 
-    def _unique_email(self,first_name: str, last_name: str, used_emails: set[str]) -> str:
+    def _unique_email(self, first_name: str, last_name: str, used_emails: set[str]) -> str:
         """Build an email from the last name. Add a number if it is already used."""
         first: str = NOT_LETTERS_PATTERN.sub("", first_name.lower())
         last: str = NOT_LETTERS_PATTERN.sub("", last_name.lower())
         domain: str = random.choice(EMAIL_DOMAINS)
 
-        email: str = EMAIL_TAMPLATE.format(first=first, last=last, number="",domain=domain)
+        email: str = EMAIL_TAMPLATE.format(first=first, last=last, number="", domain=domain)
         number: int = FIRST_SLUG_SUFFIX
         while email in used_emails:
-            email = EMAIL_TAMPLATE.format(first=first, last=last, number=number,domain=domain)
+            email = EMAIL_TAMPLATE.format(first=first, last=last, number=number, domain=domain)
             number += 1
         return email
 
-
-
-
-    #-------------------------------------------------------------------------------------------
-    #Categories and tags
+    # -------------------------------------------------------------------------------------------
+    # Categories and tags
     #
     def _create_categories(self) -> list[Category]:
         """Create categories from CATEGORY_NAMES. Skip existing ones."""
@@ -278,8 +273,8 @@ class Command(BaseCommand):
         ]
         return Tag.objects.bulk_create(new_tags)
 
-    #-------------------------------------------------------------------------------------------
-    #Posts
+    # -------------------------------------------------------------------------------------------
+    # Posts
     #
     def _create_posts(self, count: int) -> list[Post]:
         """Create posts with unique slugs, ramdom author, status and category."""
@@ -306,13 +301,13 @@ class Command(BaseCommand):
                 Post(
                     author_id=random.choice(author_ids),
                     title=title,
-                    #bulk_create does not call save(), so we set the slug ourselves.
+                    # bulk_create does not call save(), so we set the slug ourselves.
                     slug=slug,
                     body=PARAGRAPHS_SEPARRATOR.join(
-                        self.fake.paragraphs(nb=random.randint(MIN_PARAGRAPHS,MAX_PARAGRAPHS))
+                        self.fake.paragraphs(nb=random.randint(MIN_PARAGRAPHS, MAX_PARAGRAPHS))
                     ),
                     category=random.choice(categories) if has_category else None,
-                    status=Post.Status.PUBLISHED if is_published else Post.Status.DRAFT
+                    status=Post.Status.PUBLISHED if is_published else Post.Status.DRAFT,
                 )
             )
         return Post.objects.bulk_create(posts, batch_size=BULK_BATCH_SIZE)
@@ -343,7 +338,7 @@ class Command(BaseCommand):
         max_tags: int = min(MAX_TAGS_PER_POST, len(tags))
         for post in posts:
             # After bulk_create the posts have ids, so .set() words.
-            post.tags.set(random.sample(tags, k=random.randint(MIN_TAGS_PER_POST,max_tags)))
+            post.tags.set(random.sample(tags, k=random.randint(MIN_TAGS_PER_POST, max_tags)))
 
     def _create_comments(self, count: int, posts: list[Post]) -> list[Comment]:
         if count == 0:
@@ -359,7 +354,9 @@ class Command(BaseCommand):
                 post=random.choice(published),
                 author_id=random.choice(author_ids),
                 body=" ".join(
-                    self.fake.sentences(random.randint(MIN_COMMENT_SENTENCES, MAX_COMMENT_SENTENCES))
+                    self.fake.sentences(
+                        random.randint(MIN_COMMENT_SENTENCES, MAX_COMMENT_SENTENCES)
+                    )
                 ),
             )
             for _ in range(count)
@@ -372,7 +369,9 @@ class Command(BaseCommand):
             post.created_at = now - timedelta(days=random.random() * POSTS_DATE_RANGE_DAYS)
             post.updated_at = post.created_at
             if random.random() < EDITED_POSTS_RATIO:
-                edited = post.created_at + timedelta(days=random.randint(MIN_EDIT_DAYS, MAX_EDIT_DAYS))
+                edited = post.created_at + timedelta(
+                    days=random.randint(MIN_EDIT_DAYS, MAX_EDIT_DAYS)
+                )
                 post.updated_at = min(edited, now)
         Post.objects.bulk_update(posts, ["created_at", "updated_at"], batch_size=BULK_BATCH_SIZE)
 
@@ -384,6 +383,6 @@ class Command(BaseCommand):
         Comment.objects.bulk_update(comments, ["created_at"], batch_size=BULK_BATCH_SIZE)
 
     def _print_summary(self, elapsed: float, **counts: int) -> None:
-            for label, number in counts.items():
-                self.stdout.write(f"{label.capitalize()}: {number} created")
-            self.stdout.write(self.style.SUCCESS(f"Done in {elapsed:.2f} seconds"))
+        for label, number in counts.items():
+            self.stdout.write(f"{label.capitalize()}: {number} created")
+        self.stdout.write(self.style.SUCCESS(f"Done in {elapsed:.2f} seconds"))

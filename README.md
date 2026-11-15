@@ -95,3 +95,42 @@ The admin uses Django Unfold: http://127.0.0.1:8000/admin/
 | Post edit page | User list |
 |---|---|
 | ![Post edit](docs/screenshots/post_edit.png) | ![User list](docs/screenshots/user_list.png) |
+
+## Queries
+'apps/blog/queries.py' has 50 ORM queries. Run them with:
+ 
+ ```
+ python manage.py queries
+ # all read queries (40-44 are skipped, they change data)
+
+ python manage.py queries --number 31
+ # only query 31
+ python manage.py queries --number 6 --sql
+
+ # also print the SQL
+
+```
+Example
+```
+$ python manage.py queries --number 31
+#31 categories_with_post_count - 1 SQL query
+  Career {'post_count': 14}
+  Python {'post_count': 14}
+  Databases {'post_count': 13}
+  DevOps {'post_count': 13}
+  Frontend {'post_count': 13}
+  (8 rows)
+```
+
+After queries 40-44 run 'python manage.py seed --clear' to get fresh data.
+
+### Screenshots
+
+Run one query
+![Query 31](docs/screenshots/queries_number.png)
+
+Show the SQL
+![Query 6 with SQL](docs/screenshots/queries_sql.png)
+
+A number that does not exist gives an error:
+![Error](docs/screenshots/queries_error.png)

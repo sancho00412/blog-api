@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from django.db import transaction
-from django.db.models import(
+from django.db.models import (
     Avg,
     Case,
     Count,
@@ -42,119 +42,146 @@ FEED_LIMIT: int = 50
 NEWEST_WITH_TAGS_LIMIT: int = 20
 EDIT_THRESHOLD: timedelta = timedelta(hours=1)
 
+
 def categories_by_name() -> QuerySet[Category]:
     """All Categories, A -> Z."""
     return Category.objects.order_by("name")
 
-def published_posts() ->  QuerySet[Post]:
+
+def published_posts() -> QuerySet[Post]:
     """Published posts, newest first."""
     return Post.objects.filter(status=PUBLISHED).order_by("-created_at")
 
-def newest_published_posts() ->QuerySet[Post]:
+
+def newest_published_posts() -> QuerySet[Post]:
     """The 5 newest published posts."""
     return published_posts()[:NEWEST_POSTS_LIMIT]
+
 
 def post_by_slug(slug: str) -> Post | None:
     """The post with this slag or None."""
     return Post.objects.filter(slug=slug).first()
 
+
 def active_users_count() -> int:
     """Number of active users that are not staff."""
-    return User.objects.filter(is_active=True, is_staff= False).count()
+    return User.objects.filter(is_active=True, is_staff=False).count()
+
 
 def has_drafts() -> bool:
     """True if there is at least one draft."""
     return Post.objects.filter(status=DRAFT).exists()
+
 
 def published_posts_page(page: int) -> QuerySet[Post]:
     """One page of published posts, 10 per page."""
     start: int = (page - 1) * PAGE_SIZE
     return published_posts()[start : start + PAGE_SIZE]
 
-#-------------------Level 2---------------------
+
+# -------------------Level 2---------------------
 def posts_with_word_in_title(word: str) -> QuerySet[Post]:
     """Posts whose title contains the word, any case."""
     return Post.objects.filter(title__icontains=word)
+
 
 def users_with_email_domain(domain: str) -> QuerySet[User]:
     """Users whose email ends with @domain."""
     return User.objects.filter(email__iendswith=f"@{domain}")
 
+
 def posts_without_category() -> QuerySet[Post]:
     """Posts with no category."""
     return Post.objects.filter(category__isnull=True)
+
 
 def categories_by_slugs(slugs: list[str]) -> QuerySet[Category]:
     """Categories whose slug is in the list."""
     return Category.objects.filter(slug__in=slugs)
 
+
 def posts_in_month(year: int, month: int) -> QuerySet[Post]:
     """Posts created in this month"""
     return Post.objects.filter(created_at__year=year, created_at__month=month)
+
 
 def posts_last_days(days: int) -> QuerySet[Post]:
     """Posts created in the last N days"""
     return Post.objects.filter(created_at__gte=timezone.now() - timedelta(days=days))
 
+
 def posts_between(start: date, end: date) -> QuerySet[Post]:
     """Posts created from start tp end, both days included."""
     return Post.objects.filter(created_at__date__range=(start, end))
 
-#-------------------Level 2---------------------
-def author_published_posts(email:str) -> QuerySet[Post]:
+
+# -------------------Level 2---------------------
+def author_published_posts(email: str) -> QuerySet[Post]:
     """Published posts of the author with this email."""
     return Post.objects.filter(author__email__iexact=email, status=PUBLISHED)
+
 
 def posts_with_tag(tag_slug: str) -> QuerySet[Post]:
     """Posts that have this tag."""
     return Post.objects.filter(tags__slug=tag_slug)
 
+
 def comments_in_category(category_slug: str) -> QuerySet[Comment]:
     """Comments on posts of this category."""
     return Comment.objects.filter(post__category__slug=category_slug)
+
 
 def users_with_published_posts() -> QuerySet[User]:
     """Users with at least one published post, no repeats."""
     return User.objects.filter(posts__status=PUBLISHED).distinct()
 
+
 def posts_without_tags() -> QuerySet[Post]:
     """Posts with no tags."""
     return Post.objects.filter(tags__isnull=True)
+
 
 def users_without_comments() -> QuerySet[User]:
     """Users who never wrote a comment."""
     return User.objects.filter(comments__isnull=True)
 
+
 def posts_with_both_tags(first_slug: str, second_slug: str) -> QuerySet[Post]:
     """Posts that have both tags."""
     return Post.objects.filter(tags__slug=first_slug).filter(tags__slug=second_slug)
 
-#---------------------Level-4------------------------------------
+
+# ---------------------Level-4------------------------------------
 def search_posts(text: str) -> QuerySet[Post]:
     """Posts with the text in the title or in the body."""
     return Post.objects.filter(Q(title__icontains=text) | Q(body__icontains=text))
 
+
 def published_posts_missing_info() -> QuerySet[Post]:
     """Published posts with no category or no tags."""
-    return(
+    return (
         Post.objects.filter(status=PUBLISHED)
         .filter(Q(category__isnull=True) | Q(tags__isnull=True))
         .distinct()
     )
 
+
 def edited_posts() -> QuerySet[Post]:
     """Posts edited more than 1 hours after creation."""
     return Post.objects.filter(updated_at__gt=F("created_at") + EDIT_THRESHOLD)
+
 
 def comments_by_post_author() -> QuerySet[Comment]:
     """Comments written by the author of the post"""
     return Comment.objects.filter(author=F("post__author"))
 
+
 def comments_before_post() -> QuerySet[Comment]:
     """Comments created before their post. Must be empty."""
     return Comment.objects.filter(created_at__lt=F("post__created_at"))
 
-#---------------------Level-5------------------------------------
+
+# ---------------------Level-5------------------------------------
 def published_authors_emails() -> list[str]:
     """Unique emails of authors with published posts, A -> Z."""
     return list(
@@ -163,6 +190,7 @@ def published_authors_emails() -> list[str]:
         .distinct()
         .order_by("email")
     )
+
 
 def published_posts_overview() -> list[dict[str, Any]]:
     """Title, author email and category name of published posts."""
@@ -174,7 +202,8 @@ def published_posts_overview() -> list[dict[str, Any]]:
         )
     )
 
-#---------------------Level-6------------------------------------
+
+# ---------------------Level-6------------------------------------
 def posts_stats() -> dict[str, Any]:
     """Counts and first/last dates of posts in one query."""
     return Post.objects.aggregate(
@@ -183,22 +212,24 @@ def posts_stats() -> dict[str, Any]:
         drafts=Count("pk", filter=Q(status=DRAFT)),
         first_post_at=Min("created_at"),
         last_post_at=Max("created_at"),
-
     )
+
 
 def average_comments_per_post() -> float:
     """Average number of comments on a published post."""
     result: dict[str, float] = (
         Post.objects.filter(status=PUBLISHED)
         .annotate(comment_count=Count("comments"))
-        .aggregate(average=Avg("comment_count",default=0.0))
+        .aggregate(average=Avg("comment_count", default=0.0))
     )
     return round(result["average"], AVERAGE_DIGITS)
 
-#---------------------Level-7------------------------------------
+
+# ---------------------Level-7------------------------------------
 def categories_with_post_count() -> QuerySet[Category]:
     """Categories with post_count, must posts first."""
     return Category.objects.annotate(post_count=Count("posts")).order_by("-post_count", "name")
+
 
 def categories_with_published_count() -> QuerySet[Category]:
     """Categories with published_count, including 0."""
@@ -206,32 +237,38 @@ def categories_with_published_count() -> QuerySet[Category]:
         published_count=Count("posts", filter=Q(posts__status=PUBLISHED))
     )
 
+
 def top_authors() -> QuerySet[User]:
     """Top 5 uers by published posts"""
     return User.objects.annotate(
         published_count=Count("posts", filter=Q(posts__status=PUBLISHED))
     ).order_by("-published_count")[:TOP_AUTHORS_LIMIT]
+
+
 def popular_tags(min_posts: int) -> QuerySet[Tag]:
     """Tags used in at least min_posts."""
     return Tag.objects.annotate(post_count=Count("posts")).filter(post_count__gte=min_posts)
 
-def posts_per_status() ->list[dict[str, Any]]:
+
+def posts_per_status() -> list[dict[str, Any]]:
     """Number of posts for each status."""
     return list(Post.objects.values("status").annotate(count=Count("pk")).order_by("status"))
+
 
 def users_activity() -> QuerySet[User]:
     """Users with correct post_count and comment_count"""
     return User.objects.annotate(
-        post_count=Count("posts",distinct=True),
-        comment_count=Count("comments", distinct=True)
+        post_count=Count("posts", distinct=True), comment_count=Count("comments", distinct=True)
     )
 
-#---------------------Level-8------------------------------------
+
+# ---------------------Level-8------------------------------------
 def search_users_by_full_name(text: str) -> QuerySet[User]:
     """Users whose 'Firts Last' contains the text"""
-    return User.objects.annotate(
-        full_name=Concat("first_name", Value(" "), "last_name")
-    ).filter(full_name__icontains=text)
+    return User.objects.annotate(full_name=Concat("first_name", Value(" "), "last_name")).filter(
+        full_name__icontains=text
+    )
+
 
 def published_posts_per_month() -> list[dict[str, Any]]:
     """Number of published posts in each month, olders first."""
@@ -243,6 +280,7 @@ def published_posts_per_month() -> list[dict[str, Any]]:
         .order_by("month")
     )
 
+
 def posts_with_popularity() -> QuerySet[Post]:
     """Posts with comment_count and popularity hot / normal / quiet."""
     return Post.objects.annotate(
@@ -250,14 +288,16 @@ def posts_with_popularity() -> QuerySet[Post]:
         popularity=Case(
             When(comment_count__gte=HOT_COMMENTS, then=Value("hot")),
             When(comment_count__gte=NORMAL_COMMENTS, then=Value("normal")),
-            default=Value("quiet")
+            default=Value("quiet"),
         ),
     )
 
-#---------------------Level-9------------------------------------
+
+# ---------------------Level-9------------------------------------
 def get_or_create_tag(name: str) -> tuple[Tag, bool]:
     """Return the tag whith this name, create it if needed."""
     return Tag.objects.get_or_create(slug=slugify(name), defaults={"name": name})
+
 
 def publish_old_drafts(days: int) -> int:
     """Publish drafts older than N days with one query."""
@@ -266,12 +306,14 @@ def publish_old_drafts(days: int) -> int:
         status=PUBLISHED, updated_at=now
     )
 
+
 def tag_category_posts(category_slug: str, tag_slug: str) -> int:
     """Add the tag to every post of the category."""
     tag: Tag = Tag.objects.get(slug=tag_slug)
     posts: list[Post] = list(Post.objects.filter(category__slug=category_slug))
     tag.posts.add(*posts)
     return len(posts)
+
 
 def merge_categories(source_slug: str, target_slug: str) -> int:
     """Move posts to the target category, then delete the source."""
@@ -281,47 +323,57 @@ def merge_categories(source_slug: str, target_slug: str) -> int:
         Category.objects.filter(slug=source_slug).delete()
     return moved
 
+
 def delete_inactive_users_comments() -> int:
     """Delete comments of inactive users."""
-    delete, _ =Comment.objects.filter(author__is_active=False).delete()
+    delete, _ = Comment.objects.filter(author__is_active=False).delete()
     return delete
 
-#---------------------Level-10------------------------------------
+
+# ---------------------Level-10------------------------------------
 def published_feed() -> list[str]:
     """50 newest published posts as 'title | email | category'."""
     posts = published_posts().select_related("author", "category")[:FEED_LIMIT]
-    return[
+    return [
         f"{p.title} | {p.author.email} | {p.category.name if p.category else UNCATEGORIZED}"
         for p in posts
     ]
 
+
 def newest_posts_with_tags() -> list[str]:
     """20 newest posts as 'title: tag1, tag2'."""
     posts = Post.objects.prefetch_related("tags").order_by("-created_at")[:NEWEST_WITH_TAGS_LIMIT]
-    return[f"{p.title}: {', '.join(t.name for t in p.tags.all())}" for p in posts]
+    return [f"{p.title}: {', '.join(t.name for t in p.tags.all())}" for p in posts]
 
-def categorines_with_published_posts() -> dict[str, list[str]]:
+
+def categories_with_published_posts() -> dict[str, list[str]]:
     """{category: [titles of its published posts, newest first]}."""
     categories = Category.objects.prefetch_related(
         Prefetch("posts", queryset=published_posts(), to_attr="published_posts")
     )
     return {c.name: [p.title for p in c.published_posts] for c in categories}
 
-#---------------------Level-11------------------------------------
+
+# ---------------------Level-11------------------------------------
 def posts_with_last_comment() -> QuerySet[Post]:
     """Published posts with the body of their newest comment."""
     newest = Comment.objects.filter(post=OuterRef("pk")).order_by("created_at").values("body")[:1]
     return Post.objects.filter(status=PUBLISHED).annotate(last_comment=Subquery(newest))
+
 
 def posts_with_staff_comments() -> QuerySet[Post]:
     """Post with at least one comment from a staff user."""
     staff_comments = Comment.objects.filter(post=OuterRef("pk"), author__is_staff=True)
     return Post.objects.filter(Exists(staff_comments))
 
+
 def users_with_draft_as_latest_post() -> QuerySet[User]:
     """Users whose newest post is a draft."""
     latest = Post.objects.filter(author=OuterRef("pk")).order_by("-created_at").values("status")[:1]
-    return User.objects.annotate(latest_post_status=Subquery(latest)).filter(latest_post_status=DRAFT)
+    return User.objects.annotate(latest_post_status=Subquery(latest)).filter(
+        latest_post_status=DRAFT
+    )
+
 
 QUERIES: dict[int, Callable[..., Any]] = {
     1: categories_by_name,
@@ -368,9 +420,9 @@ QUERIES: dict[int, Callable[..., Any]] = {
     42: tag_category_posts,
     43: merge_categories,
     44: delete_inactive_users_comments,
-    45: published_feed, 
+    45: published_feed,
     46: newest_posts_with_tags,
-    47: categorines_with_published_posts,
+    47: categories_with_published_posts,
     48: posts_with_last_comment,
     49: posts_with_staff_comments,
     50: users_with_draft_as_latest_post,

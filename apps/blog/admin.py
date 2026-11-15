@@ -76,7 +76,14 @@ class CommentInline(TabularInline):
 
 @admin.register(Post)
 class PostAdmin(ModelAdmin):
-    list_display = ["post_header", "status_label", "category", "tags_dropdown", "comments_count", "created_at"]
+    list_display = [
+        "post_header",
+        "status_label",
+        "category",
+        "tags_dropdown",
+        "comments_count",
+        "created_at",
+    ]
     list_filter = [
         ("status", ChoicesDropdownFilter),
         ("category", RelatedDropdownFilter),
@@ -111,7 +118,9 @@ class PostAdmin(ModelAdmin):
             super()
             .get_queryset(request)
             .select_related("author", "category")
-            .prefetch_related("tags", Prefetch("comments", Comment.objects.select_related("author")))
+            .prefetch_related(
+                "tags", Prefetch("comments", Comment.objects.select_related("author"))
+            )
             .annotate(comments_total=Count("comments", distinct=True))
             .order_by("-created_at")
         )
